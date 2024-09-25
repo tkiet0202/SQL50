@@ -127,3 +127,91 @@ LEFT JOIN Confirmations c
 ON s.user_id = c.user_id 
 GROUP BY s.user_id;
 ```
+ Not Boring Movies
+```sql
+SELECT *
+FROM Cinema
+WHERE id % 2 <> 0 
+AND description <> "boring"
+ORDER BY rating DESC
+```
+
+Average Selling Price
+```sql
+SELECT p.product_id, 
+  ROUND(SUM(price * units) / SUM(units), 2) AS average_price
+FROM Prices p
+LEFT JOIN UnitsSold s
+ON p.product_id = s.product_id
+AND purchase_date BETWEEN start_date AND end_date
+GROUP BY p.product_id
+```
+
+ Project Employees I
+```sql
+SELECT project_id, ROUND(AVG(experience_years), 2) average_years
+FROM Project p 
+LEFT JOIN Employee e
+ON p.employee_id = e.employee_id
+GROUP BY project_id
+```
+
+Percentage of Users Attended a Contest
+```sql
+SELECT r.contest_id,
+       ROUND(COUNT(DISTINCT r.user_id) * 100 / (SELECT COUNT(DISTINCT user_id) FROM Users), 2) AS percentage
+FROM Register r
+GROUP BY r.contest_id
+ORDER BY percentage DESC, r.contest_id ASC;
+```
+
+ Queries Quality and Percentage
+
+```sql
+SELECT query_name, 
+    ROUND(AVG(rating/position), 2) AS quality, 
+    ROUND(SUM(IF(rating < 3, 1, 0)) * 100/ COUNT(rating), 2) AS poor_query_percentage
+FROM Queries
+GROUP BY query_name
+```
+
+Monthly Transactions I
+```sql
+SELECT DATE_FORMAT(trans_date, '%Y-%m') month, country, 
+        COUNT(state) trans_count, 
+        SUM(IF(state = 'approved', 1, 0)) approved_count, 
+        SUM(amount) trans_total_amount,
+        SUM(IF(state = 'approved', amount, 0)) approved_total_amount
+FROM Transactions
+GROUP BY 1, 2
+```
+
+
+Immediate Food Delivery II
+```sql
+SELECT
+    ROUND((COUNT(CASE WHEN d.order_date = d.customer_pref_delivery_date THEN 1 END) / COUNT(*)) * 100, 2)  immediate_percentage
+FROM Delivery d
+WHERE d.order_date = (
+    SELECT
+    MIN(order_date)
+    FROM Delivery
+    WHERE customer_id = d.customer_id
+    );
+```
+ Game Play Analysis IV
+
+```sql
+WITH login_date AS (SELECT player_id, MIN(event_date) AS first_login
+FROM Activity
+GROUP BY player_id),
+
+recent_login AS (
+SELECT *, DATE_ADD(first_login, INTERVAL 1 DAY) AS next_day
+FROM login_date)
+
+SELECT ROUND((SELECT COUNT(DISTINCT(player_id))
+FROM Activity
+WHERE (player_id, event_date) IN 
+(SELECT player_id, next_day FROM recent_login)) / (SELECT COUNT(DISTINCT player_id) FROM Activity), 2) AS fraction
+```
