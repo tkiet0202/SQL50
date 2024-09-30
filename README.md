@@ -215,3 +215,237 @@ FROM Activity
 WHERE (player_id, event_date) IN 
 (SELECT player_id, next_day FROM recent_login)) / (SELECT COUNT(DISTINCT player_id) FROM Activity), 2) AS fraction
 ```
+ Number of Unique Subjects Taught by Each Teacher
+```sql
+SELECT teacher_id, COUNT(DISTINCT subject_id) cnt
+FROM Teacher
+GROUP BY teacher_id
+```
+
+User Activity for the Past 30 Days I
+```sql
+SELECT activity_date as day, COUNT(DISTINCT user_id) AS active_users
+FROM Activity
+WHERE activity_date BETWEEN DATE_SUB('2019-07-27', INTERVAL 29 DAY) AND '2019-07-27'
+GROUP BY activity_date
+```
+ Product Sales Analysis III
+```sql
+SELECT s.product_id, s.year AS first_year, s.quantity, s.price
+FROM Sales s
+JOIN (
+  SELECT product_id, MIN(year) AS year 
+  FROM sales 
+  GROUP BY product_id
+  ) p
+ON s.product_id = p.product_id
+AND s.year = p.year
+
+
+```
+
+Classes More Than 5 Students
+```sql
+SELECT class
+FROM Courses
+GROUP BY class
+HAVING COUNT(student) >= 5
+```
+
+Find Followers Count
+```sql
+SELECT user_id, COUNT(DISTINCT follower_id) AS followers_count
+FROM Followers
+GROUP BY user_id
+ORDER BY user_id ASC
+```
+
+ Biggest Single Number
+```sql
+SELECT COALESCE(
+  (SELECT num
+  FROM MyNumbers
+  GROUP BY num
+  HAVING COUNT(num) = 1
+  ORDER BY num DESC
+  LIMIT 1), null) 
+  AS num
+```
+
+Customers Who Bought All Products
+```sql
+SELECT customer_id
+FROM Customer
+GROUP BY customer_id
+HAVING COUNT(DISTINCT product_key) = (
+  SELECT COUNT(product_key)
+  FROM Product
+)
+```
+The Number of Employees Which Report to Each Employee
+```sql
+SELECT e1.employee_id, e1.name, COUNT(e2.employee_id) reports_count, ROUND(AVG(e2.age)) average_age 
+FROM Employees e1, Employees e2
+WHERE e1.employee_id = e2.reports_to
+GROUP BY e1.employee_id
+HAVING reports_count > 0
+ORDER BY e1.employee_id
+```
+Primary Department for Each Employee
+```sql
+SELECT employee_id, department_id
+FROM Employee 
+WHERE primary_flag = 'Y'
+UNION
+SELECT employee_id, department_id
+FROM Employee
+GROUP BY employee_id
+HAVING COUNT(employee_id)=1
+```
+
+Triangle Judgement
+
+```sql
+SELECT x, y, z, 
+CASE WHEN x + y > z AND x + z > y AND y + z > x THEN 'Yes'
+ELSE 'No' END AS triangle
+FROM Triangle
+```
+
+ Consecutive Numbers
+```sql
+WITH cte AS (
+  SELECT id, num, 
+    LEAD(num) OVER (ORDER BY id) AS next, 
+    LAG(num) OVER (ORDER BY id) AS prev
+  FROM Logs
+) 
+SELECT DISTINCT(num) AS ConsecutiveNums
+FROM cte
+WHERE num = next AND num = prev
+```
+
+
+Product Price at a Given Date
+```sql
+SELECT product_id, new_price AS price
+FROM products
+WHERE (product_id, change_date) IN
+(   
+    SELECT product_id, MAX(change_date)
+    FROM products
+    WHERE change_date <= '2019-08-16'
+    GROUP BY product_id
+)
+UNION
+
+SELECT product_id, 10 AS price
+FROM products
+WHEN product_id NOT IN
+(
+  SELECT product_id
+  FROM products
+  WHERE change_date <= '2019-08-16'
+)
+```
+
+
+Employees Whose Manager Left the Company
+```sql
+SELECT employee_id
+FROM Employees
+WHERE manager_id NOT IN (
+    SELECT employee_id 
+    FROM Employees
+)
+AND salary < 30000
+ORDER BY employee_id
+```
+
+Department Top Three Salaries
+```sql
+WITH RankedSalaries AS 
+(SELECT 
+    e.Id AS employee_id,
+    e.name AS employee,
+    e.salary,
+    e.departmentId,
+    DENSE_RANK() OVER (PARTITION BY e.departmentId ORDER BY e.salary DESC) AS salary_rank 
+FROM Employee e)
+SELECT d.name AS Department,
+r.employee,
+r.salary
+FROM Department d
+JOIN RankedSalaries r ON r.departmentId = d.id
+WHERE r.salary_rank <=3;
+```
+
+
+Fix Names in a Table
+```sql
+SELECT user_id, CONCAT(UPPER(LEFT(name, 1)), LOWER(RIGHT(name, LENGTH(name)-1))) AS name
+FROM Users
+ORDER BY user_id
+```
+
+ Patients With a Condition
+```sql
+SELECT patient_id, patient_name, conditions 
+FROM patients 
+WHERE conditions LIKE '% DIAB1%' 
+OR conditions LIKE 'DIAB1%'
+```
+
+Delete Duplicate Emails
+```sql
+DELETE p
+FROM Person p, Person q
+WHERE p.id > q.id
+AND q.Email = p.Email
+```
+
+Second Highest Salary
+```sql
+SELECT
+(SELECT DISTINCT Salary 
+FROM Employee
+ORDER BY Salary DESC
+LIMIT 1 OFFSET 1)
+AS SecondHighestSalary
+```
+
+
+Find Users With Valid E-Mails
+```sql
+SELECT *
+FROM Users
+WHERE mail REGEXP '^[A-Za-z][A-Za-z0-9_\.\-]*@leetcode\\.com$'
+```
+
+Last Person to Fit in the Bus
+```sql
+
+WITH CTE AS (
+    SELECT person_name, weight, turn, SUM(weight) 
+    OVER(ORDER BY turn) AS total_weight
+    FROM Queue
+)
+SELECT person_name
+FROM cte
+WHERE total_weight <=1000
+ORDER BY total_weight DESC
+LIMIT 1;
+```
+
+Count Salary Categories
+```sql
+
+SELECT 'Low Salary' AS category, SUM(IF(income<20000,1,0)) AS accounts_count 
+FROM Accounts
+UNION
+SELECT 'Average Salary' AS category, SUM(IF(income>=20000 AND income<=50000,1,0)) AS accounts_count 
+FROM Accounts
+UNION
+SELECT 'High Salary' AS category, SUM(IF(income>50000,1,0)) AS accounts_count 
+FROM Accounts
+```
