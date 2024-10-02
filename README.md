@@ -380,30 +380,6 @@ JOIN RankedSalaries r ON r.departmentId = d.id
 WHERE r.salary_rank <=3;
 ```
 
-
-Fix Names in a Table
-```sql
-SELECT user_id, CONCAT(UPPER(LEFT(name, 1)), LOWER(RIGHT(name, LENGTH(name)-1))) AS name
-FROM Users
-ORDER BY user_id
-```
-
- Patients With a Condition
-```sql
-SELECT patient_id, patient_name, conditions 
-FROM patients 
-WHERE conditions LIKE '% DIAB1%' 
-OR conditions LIKE 'DIAB1%'
-```
-
-Delete Duplicate Emails
-```sql
-DELETE p
-FROM Person p, Person q
-WHERE p.id > q.id
-AND q.Email = p.Email
-```
-
 Second Highest Salary
 ```sql
 SELECT
@@ -448,4 +424,115 @@ FROM Accounts
 UNION
 SELECT 'High Salary' AS category, SUM(IF(income>50000,1,0)) AS accounts_count 
 FROM Accounts
+```
+Exchange Seats
+```sql
+SELECT id, 
+CASE WHEN MOD(id,2)=0 THEN (LAG(student) OVER (ORDER BY id))
+ELSE (LEAD(student, 1, student) OVER (ORDER BY id))
+END AS 'Student'
+FROM Seat
+```
+
+ List the Products Ordered in a Period
+```sql
+SELECT p.product_name, SUM(o.unit) AS unit
+FROM Products p
+LEFT JOIN Orders o
+ON p.product_id = o.product_id
+WHERE DATE_FORMAT(order_date, '%Y-%m') = '2020-02'
+GROUP BY p.product_name
+HAVING SUM(o.unit) >= 100
+```
+
+Group Sold Products By The Date
+```sql
+SELECT sell_date, 
+COUNT(DISTINCT product) AS num_sold,
+GROUP_CONCAT(DISTINCT product) AS 'products' 
+FROM Activities
+GROUP BY sell_date
+ORDER BY sell_date
+```
+
+Movie Rating
+
+```sql
+(SELECT name AS results
+FROM Users u
+LEFT JOIN MovieRating mr
+ON u.user_id = mr.user_id
+GROUP BY name
+ORDER BY COUNT(rating) DESC, name ASC
+LIMIT 1)
+
+UNION ALL
+
+(SELECT title
+FROM Movies m
+LEFT JOIN MovieRating mr
+ON m.movie_id = mr.movie_id
+WHERE DATE_FORMAT(created_at, '%Y-%m') = '2020-02'
+GROUP BY title
+ORDER BY AVG(rating) DESC, title ASC
+LIMIT 1 
+)
+```
+
+Restaurant Growth
+```sql
+SELECT visited_on, amount, ROUND(amount/7, 2) AS average_amount
+FROM (
+    SELECT DISTINCT visited_on,
+    SUM(amount) OVER(ORDER BY visited_on RANGE BETWEEN INTERVAL 6 DAY PRECEDING AND CURRENT ROW) AS amount,
+    MIN(visited_on) OVER() day_1
+    FROM Customer
+) t
+WHERE visited_on >= day_1+6;
+```
+
+ Friend Requests II: Who Has the Most Friends
+```sql
+WITH CTE AS (
+    SELECT requester_id AS id FROM RequestAccepted
+    UNION ALL
+    SELECT accepter_id AS id FROM RequestAccepted
+)
+
+SELECT id, COUNT(id) AS num
+FROM CTE
+GROUP BY id
+ORDER BY num DESC
+LIMIT 1
+```
+
+Investments in 2016
+```sql
+SELECT
+    ROUND(SUM(tiv_2016),2) AS tiv_2016
+FROM insurance
+WHERE tiv_2015 IN (SELECT tiv_2015 FROM insurance GROUP BY tiv_2015 HAVING COUNT(*) > 1)
+AND (lat,lon) IN (SELECT lat,lon FROM insurance GROUP BY lat,lon HAVING COUNT(*) = 1)
+```
+Fix Names in a Table
+```sql
+SELECT user_id, CONCAT(UPPER(LEFT(name, 1)), LOWER(RIGHT(name, LENGTH(name)-1))) AS name
+FROM Users
+ORDER BY user_id
+```
+
+ Patients With a Condition
+```sql
+SELECT patient_id, patient_name, conditions 
+FROM patients 
+WHERE conditions LIKE '% DIAB1%' 
+OR conditions LIKE 'DIAB1%'
+```
+
+Delete Duplicate Emails
+```sql
+DELETE p
+FROM Person p, Person q
+WHERE p.id > q.id
+AND q.Email = p.Email
 ```
